@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Level Quiz Application</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .quiz-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2.5rem; /* Increased padding */
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; /* Space between elements */
+            border: 1px solid #e5e7eb; /* Light border */
+        }
+        .question-text {
+            font-size: 1.75rem; /* Larger font size for questions */
+            font-weight: 700; /* Bold */
+            color: #1f2937; /* Dark gray text */
+            margin-bottom: 1.5rem;
+        }
+        .answer-buttons-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* Single column on small screens */
+            gap: 1rem; /* Space between buttons */
+            margin-bottom: 1.5rem;
+        }
+        @media (min-width: 640px) { /* Tailwind's 'sm' breakpoint */
+            .answer-buttons-grid {
+                grid-template-columns: 1fr 1fr; /* Two columns on larger screens */
+            }
+        }
+        .answer-button {
+            background-color: #e0f2fe; /* Light blue */
+            color: #0c4a6e; /* Darker blue text */
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem; /* Rounded corners */
+            border: 2px solid #90cdf4; /* Blue border */
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .answer-button:hover:not(.selected):not(.correct):not(.incorrect) {
+            background-color: #bfdbfe; /* Lighter blue on hover */
+            border-color: #60a5fa; /* Stronger blue border on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+        .answer-button.selected {
+            background-color: #93c5fd; /* Medium blue when selected */
+            border-color: #3b82f6; /* Darker blue border */
+            color: #1e40af; /* Darker blue text */
+        }
+        .answer-button.correct {
+            background-color: #d1fae5; /* Light green for correct */
+            border-color: #34d399; /* Green border */
+            color: #065f46; /* Dark green text */
+            box-shadow: 0 4px 6px rgba(52, 211, 153, 0.3); /* Green shadow */
+            transform: scale(1.02); /* Slightly larger */
+        }
+        .answer-button.incorrect {
+            background-color: #fee2e2; /* Light red for incorrect */
+            border-color: #ef4444; /* Red border */
+            color: #991b1b; /* Dark red text */
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3); /* Red shadow */
+            transform: scale(1.02); /* Slightly larger */
+        }
+        .feedback-message {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            min-height: 2.5rem; /* Ensure space even when empty */
+        }
+        .feedback-correct {
+            color: #10b981; /* Green */
+        }
+        .feedback-incorrect {
+            color: #ef4444; /* Red */
+        }
+        .next-button, .level-button, .restart-button, .view-records-button, .play-again-button, .choose-level-button {
+            background-color: #3b82f6; /* Blue */
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-size: 1.25rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        .next-button:hover:not(:disabled), .level-button:hover, .restart-button:hover, .view-records-button:hover, .play-again-button:hover, .choose-level-button:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+            transform: translateY(-2px);
+        }
+        .next-button:disabled {
+            background-color: #9ca3af; /* Gray when disabled */
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .score-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-top: 2rem;
+        }
+        .rating-message {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 1rem;
+            color: #10b981; /* Default to green for good rating */
+        }
+        .restart-button, .play-again-button {
+            background-color: #10b981; /* Green */
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+        }
+        .restart-button:hover, .play-again-button:hover {
+            background-color: #059669; /* Darker green on hover */
+        }
+        .choose-level-button, .view-records-button {
+            background-color: #f97316; /* Orange */
+            box-shadow: 0 4px 6px rgba(249, 115, 22, 0.3);
+        }
+        .choose-level-button:hover, .view-records-button:hover {
+            background-color: #ea580c; /* Darker orange on hover */
+        }
+        .level-selection-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .quiz-history-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 1.5rem;
+            max-height: 300px; /* Limit height for scroll if many records */
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            background-color: #f9fafb;
+        }
+        .quiz-history-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 1.125rem;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .quiz-history-item:last-child {
+            border-bottom: none;
+        }
+        .quiz-history-item span:first-child {
+            font-weight: 600;
+        }
+        .quiz-history-item span:last-child {
+            color: #10b981;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1 id="main-title" class="text-3xl font-bold text-gray-800 mb-6">Frontend Development Quiz</h1>
+
+        <!-- Level Selection Area -->
+        <div id="level-selection-area">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Choose Your Difficulty</h2>
+            <div class="level-selection-grid">
+                <button id="beginner-level-button" class="level-button">Beginner</button>
+                <button id="intermediate-level-button" class="level-button">Intermediate</button>
+                <button id="advanced-level-button" class="level-button">Advanced</button>
+                <button id="view-records-from-start" class="view-records-button">View Records</button>
+            </div>
+        </div>
+
+        <!-- Quiz Area -->
+        <div id="quiz-area" class="hidden">
+            <p id="question-text" class="question-text"></p>
+            <div id="answer-buttons" class="answer-buttons-grid">
+                <!-- Answer buttons will be injected here by JavaScript -->
+            </div>
+            <p id="feedback-message" class="feedback-message"></p>
+            <button id="next-button" class="next-button" disabled>Next Question</button>
+        </div>
+
+        <!-- Result Area -->
+        <div id="result-area" class="hidden">
+            <p id="score-display" class="score-display">You scored X out of Y!</p>
+            <p id="rating-message" class="rating-message"></p> <!-- New element for rating -->
+            <div class="level-selection-grid">
+                <button id="play-again-button" class="play-again-button">Play Again (This Level)</button>
+                <button id="choose-level-button" class="choose-level-button">Choose Another Level</button>
+                <button id="view-records-button" class="view-records-button">View Records</button>
+            </div>
+        </div>
+
+        <!-- Quiz History Area -->
+        <div id="quiz-history-area" class="hidden">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Your Quiz Records</h2>
+            <ul id="quiz-history-list" class="quiz-history-list">
+                <!-- Records will be injected here -->
+            </ul>
+            <button id="back-to-levels-button" class="choose-level-button mt-4">Back to Level Selection</button>
+        </div>
+    </div>
+
+    <script>
+        // All quiz questions, categorized by difficulty level
+        const allQuestions = {
+            beginner: [
+                {
+                    question: "Which tag is used to define an unordered list in HTML?",
+                    options: ["<ol>", "<ul>", "<li>", "<dl>"],
+                    answer: "<ul>"
+                },
+                {
+                    question: "What does CSS stand for?",
+                    options: ["Cascading Style Sheets", "Creative Style Solutions", "Computer Style Syntax", "Custom Styling System"],
+                    answer: "Cascading Style Sheets"
+                },
+                {
+                    question: "Which keyword is used to declare a variable in JavaScript?",
+                    options: ["var", "let", "const", "All of the above"],
+                    answer: "All of the above"
+                },
+                {
+                    question: "Which HTML element is used to specify a footer for a document or section?",
+                    options: ["<bottom>", "<footer>", "<end>", "<section>"],
+                    answer: "<footer>"
+                },
+                {
+                    question: "What is the correct way to include an external JavaScript file?",
+                    options: ["<script src='script.js'>", "<script href='script.js'>", "<js src='script.js'>", "<link rel='script' href='script.js'>"],
+                    answer: "<script src='script.js'>"
+                }
+            ],
+            intermediate: [
+                {
+                    question: "What is the purpose of the 'box-sizing: border-box;' CSS property?",
+                    options: ["To include padding and border in an element's total width and height", "To make elements float side-by-side", "To set the box shadow", "To control text alignment within a box"],
+                    answer: "To include padding and border in an element's total width and height"
+                },
+                {
+                    question: "Which of the following is a JavaScript array method that executes a provided function once for each array element?",
+                    options: ["filter()", "map()", "forEach()", "reduce()"],
+                    answer: "forEach()"
+                },
+                {
+                    question: "What is the 'callback hell' in JavaScript?",
+                    options: ["A bug in asynchronous code", "Nested callbacks that make code hard to read and maintain", "A type of JavaScript error", "A feature for handling promises"],
+                    answer: "Nested callbacks that make code hard to read and maintain"
+                },
+                {
+                    question: "In CSS, what is the default value of the 'position' property?",
+                    options: ["relative", "absolute", "fixed", "static"],
+                    answer: "static"
+                },
+                {
+                    question: "Which of these is NOT a valid way to select an element using JavaScript's DOM API?",
+                    options: ["document.getElementById()", "document.getElementsByClassName()", "document.querySelector()", "document.getElementByName()"],
+                    answer: "document.getElementByName()"
+                }
+            ],
+            advanced: [
+                {
+                    question: "What is the concept of 'hoisting' in JavaScript?",
+                    options: ["Moving variable declarations to the top of their scope during compilation", "A type of event bubbling", "A method for optimizing CSS", "A way to link external libraries"],
+                    answer: "Moving variable declarations to the top of their scope during compilation"
+                },
+                {
+                    question: "Explain the difference between 'localStorage' and 'sessionStorage'.",
+                    options: ["localStorage persists data across browser sessions, sessionStorage does not", "sessionStorage is more secure than localStorage", "localStorage has a smaller storage limit", "There is no difference"],
+                    answer: "localStorage persists data across browser sessions, sessionStorage does not"
+                },
+                {
+                    question: "What is a 'closure' in JavaScript?",
+                    options: ["A function that has access to its outer function's scope even after the outer function has finished executing", "A way to close a web page", "A type of CSS animation", "A method for handling network requests"],
+                    answer: "A function that has access to its outer function's scope even after the outer function has finished executing"
+                },
+                {
+                    question: "Which of the following describes 'event delegation'?",
+                    options: ["Attaching event listeners to multiple elements individually", "Attaching a single event listener to a parent element to manage events for its children", "Preventing default event behavior", "Triggering an event manually"],
+                    answer: "Attaching a single event listener to a parent element to manage events for its children"
+                },
+                {
+                    question: "What is the purpose of 'webpack' in frontend development?",
+                    options: ["A JavaScript testing framework", "A module bundler for JavaScript applications", "A CSS preprocessor", "A server-side rendering tool"],
+                    answer: "A module bundler for JavaScript applications"
+                }
+            ]
+        };
+
+        // Get references to HTML elements
+        const mainTitle = document.getElementById('main-title');
+        const levelSelectionArea = document.getElementById('level-selection-area');
+        const quizArea = document.getElementById('quiz-area');
+        const resultArea = document.getElementById('result-area');
+        const quizHistoryArea = document.getElementById('quiz-history-area');
+
+        const questionText = document.getElementById('question-text');
+        const answerButtons = document.getElementById('answer-buttons');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+
+        const scoreDisplay = document.getElementById('score-display');
+        const ratingMessage = document.getElementById('rating-message'); // New element reference
+        const playAgainButton = document.getElementById('play-again-button');
+        const chooseLevelButton = document.getElementById('choose-level-button');
+        const viewRecordsButton = document.getElementById('view-records-button');
+
+        const beginnerLevelButton = document.getElementById('beginner-level-button');
+        const intermediateLevelButton = document.getElementById('intermediate-level-button');
+        const advancedLevelButton = document.getElementById('advanced-level-button');
+        const viewRecordsFromStartButton = document.getElementById('view-records-from-start');
+        const quizHistoryList = document.getElementById('quiz-history-list');
+        const backToLevelsButton = document.getElementById('back-to-levels-button');
+
+        // Quiz state variables
+        let currentLevel = '';
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let selectedAnswer = null; // To keep track of the currently selected answer button element
+        let quizHistory = []; // Array to store records of completed quizzes
+
+        /**
+         * Initializes the quiz application by showing the level selection screen.
+         */
+        function initQuiz() {
+            mainTitle.textContent = "Frontend Development Quiz";
+            levelSelectionArea.classList.remove('hidden');
+            quizArea.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            quizHistoryArea.classList.add('hidden');
+        }
+
+        /**
+         * Starts a new quiz round for the selected level.
+         * @param {string} level The difficulty level ('beginner', 'intermediate', 'advanced').
+         */
+        function startQuiz(level) {
+            currentLevel = level;
+            currentQuestionIndex = 0;
+            score = 0;
+            selectedAnswer = null;
+
+            mainTitle.textContent = `Frontend Quiz - ${level.charAt(0).toUpperCase() + level.slice(1)}`; // Update title
+            levelSelectionArea.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            quizHistoryArea.classList.add('hidden');
+            quizArea.classList.remove('hidden'); // Show quiz area
+
+            loadQuestion(); // Load the first question of the selected level
+        }
+
+        /**
+         * Loads and displays the current question and its options for the active level.
+         */
+        function loadQuestion() {
+            // Reset UI for new question
+            feedbackMessage.textContent = '';
+            nextButton.disabled = true;
+            answerButtons.innerHTML = ''; // Clear previous answer buttons
+            selectedAnswer = null; // Reset selected answer
+
+            const questionsForLevel = allQuestions[currentLevel];
+            const currentQuestion = questionsForLevel[currentQuestionIndex];
+            questionText.textContent = currentQuestion.question;
+
+            // Create buttons for each option
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('answer-button');
+                // Use a closure to pass button, option, and correct answer to the event listener
+                button.addEventListener('click', () => selectAnswer(button, option, currentQuestion.answer));
+                answerButtons.appendChild(button);
+            });
+        }
+
+        /**
+         * Handles the user's answer selection.
+         * @param {HTMLElement} button The button element that was clicked.
+         * @param {string} selectedOption The text content of the selected option.
+         * @param {string} correctAnswer The correct answer for the current question.
+         */
+        function selectAnswer(button, selectedOption, correctAnswer) {
+            // Disable all answer buttons after selection to prevent multiple selections
+            Array.from(answerButtons.children).forEach(btn => {
+                btn.disabled = true;
+                btn.classList.remove('selected'); // Remove selected class from previously selected if any
+            });
+
+            // Mark the selected button
+            button.classList.add('selected');
+            selectedAnswer = button; // Store reference to the selected button
+
+            // Check if the answer is correct and provide feedback
+            if (selectedOption === correctAnswer) {
+                feedbackMessage.textContent = 'Correct!';
+                feedbackMessage.classList.remove('feedback-incorrect');
+                feedbackMessage.classList.add('feedback-correct');
+                score++; // Increment score if correct
+                button.classList.add('correct'); // Mark the button as correct
+            } else {
+                feedbackMessage.textContent = `Incorrect. The correct answer was: ${correctAnswer}`;
+                feedbackMessage.classList.remove('feedback-correct');
+                feedbackMessage.classList.add('feedback-incorrect');
+                button.classList.add('incorrect'); // Mark the button as incorrect
+
+                // Also highlight the correct answer if the user was wrong
+                Array.from(answerButtons.children).forEach(btn => {
+                    if (btn.textContent === correctAnswer) {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+
+            // Enable the next button
+            nextButton.disabled = false;
+        }
+
+        /**
+         * Moves to the next question or displays the results if the quiz is finished.
+         */
+        function nextQuestion() {
+            currentQuestionIndex++;
+            const questionsForLevel = allQuestions[currentLevel];
+            if (currentQuestionIndex < questionsForLevel.length) {
+                loadQuestion(); // Load the next question
+            } else {
+                displayResults(); // Quiz finished, show results
+            }
+        }
+
+        /**
+         * Displays the final score and provides options to continue, including a rating.
+         */
+        function displayResults() {
+            quizArea.classList.add('hidden'); // Hide quiz area
+            resultArea.classList.remove('hidden'); // Show result area
+
+            const totalQuestions = allQuestions[currentLevel].length;
+            scoreDisplay.textContent = `You scored ${score} out of ${totalQuestions} on the ${currentLevel} level!`;
+
+            // Calculate percentage score
+            const percentage = (score / totalQuestions) * 100;
+            let ratingText = '';
+
+            // Determine rating based on percentage
+            if (percentage === 100) {
+                ratingText = "Excellent! You aced it!";
+                ratingMessage.style.color = '#10b981'; // Green
+            } else if (percentage >= 80) {
+                ratingText = "Great job! You did very well!";
+                ratingMessage.style.color = '#22c55e'; // Stronger green
+            } else if (percentage >= 50) {
+                ratingText = "Good effort! Keep practicing!";
+                ratingMessage.style.color = '#f59e0b'; // Amber
+            } else {
+                ratingText = "Keep going! You'll get there with more practice.";
+                ratingMessage.style.color = '#ef4444'; // Red
+            }
+            ratingMessage.textContent = ratingText;
+
+
+            // Record the current quiz round
+            quizHistory.push({
+                level: currentLevel,
+                score: score,
+                totalQuestions: totalQuestions,
+                percentage: percentage.toFixed(0), // Store rounded percentage
+                rating: ratingText, // Store the rating message
+                date: new Date().toLocaleString() // Add a timestamp for the record
+            });
+        }
+
+        /**
+         * Displays the list of past quiz records.
+         */
+        function viewRecords() {
+            levelSelectionArea.classList.add('hidden');
+            quizArea.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            quizHistoryArea.classList.remove('hidden');
+
+            quizHistoryList.innerHTML = ''; // Clear previous records
+            if (quizHistory.length === 0) {
+                const listItem = document.createElement('li');
+                listItem.textContent = "No quiz records yet. Play a round!";
+                listItem.classList.add('quiz-history-item', 'justify-center', 'text-gray-500');
+                quizHistoryList.appendChild(listItem);
+            } else {
+                quizHistory.forEach((record, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('quiz-history-item');
+                    listItem.innerHTML = `
+                        <span>${record.level.charAt(0).toUpperCase() + record.level.slice(1)} Level</span>
+                        <span>Score: ${record.score}/${record.totalQuestions} (${record.percentage}%)</span>
+                        <span class="text-sm text-gray-400">${record.rating}</span>
+                        <span class="text-xs text-gray-400">${record.date}</span>
+                    `;
+                    quizHistoryList.appendChild(listItem);
+                });
+            }
+        }
+
+        // Event Listeners
+        nextButton.addEventListener('click', nextQuestion);
+
+        // Level selection buttons
+        beginnerLevelButton.addEventListener('click', () => startQuiz('beginner'));
+        intermediateLevelButton.addEventListener('click', () => startQuiz('intermediate'));
+        advancedLevelButton.addEventListener('click', () => startQuiz('advanced'));
+
+        // Buttons in the result area
+        playAgainButton.addEventListener('click', () => startQuiz(currentLevel)); // Play current level again
+        chooseLevelButton.addEventListener('click', initQuiz); // Go back to level selection
+        viewRecordsButton.addEventListener('click', viewRecords); // View records from result screen
+
+        // Buttons in the initial screen and history screen
+        viewRecordsFromStartButton.addEventListener('click', viewRecords);
+        backToLevelsButton.addEventListener('click', initQuiz);
+
+        // Initial load: show the level selection screen
+        document.addEventListener('DOMContentLoaded', initQuiz);
+    </script>
+</body>
+</html>
